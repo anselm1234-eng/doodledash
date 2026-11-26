@@ -11,7 +11,7 @@
 
 **draw. guess. dash.**
 
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL%20v3-white?style=flat-square&labelColor=09090b)](./LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-white?style=flat-square&labelColor=09090b)](./LICENSE)
 [![Next.js](https://img.shields.io/badge/Next.js-15-white?style=flat-square&labelColor=09090b&logo=next.js)](https://nextjs.org)
 [![Firebase](https://img.shields.io/badge/Realtime%20Database-RTDB-white?style=flat-square&labelColor=09090b&logo=firebase)](https://firebase.google.com)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-white?style=flat-square&labelColor=09090b&logo=typescript)](https://typescriptlang.org)
@@ -20,167 +20,131 @@
 
 ---
 
-A minimal, real-time multiplayer draw & guess game. Create a private room, share the code, take turns drawing while everyone else tries to guess the word.
+**DoodleDash** is a fast-paced, web-based multiplayer experience where quick thinking meets terrible art skills. Spin up a private lobby, send the invite code to your friends, and take turns sketching prompts while everyone else races to type the correct answer.
 
-The word bank lives entirely server-side — players can't cheat by reading the source.
-
----
-
-## features
-
-- real-time canvas synced across all players via Firebase Realtime Database
-- private rooms with a 6-character shareable code
-- host controls — rounds, draw time, hints, word count, max players, categories
-- custom word support per room
-- score system with guess-order bonuses and drawer rewards
-- progressive hints that reveal letters over time
-- emoji reactions, vote-to-skip, live chat
-- word bank stored in Firestore, fetched server-side only — never in the client bundle
+Built for security, the game's dictionary is kept strictly on the backend—meaning your friends can't peek at the source code to cheat.
 
 ---
 
-## stack
+## what makes it awesome
 
-| | |
+- **Live Canvas Sync:** Watch the drawing unfold stroke-by-stroke instantly, powered by Firebase.
+- **Private Lobbies:** Generate secure 6-character room codes for you and your friends.
+- **Complete Host Authority:** Tweak the rules before you start—set round limits, drawing timers, player caps, and specific word categories.
+- **Dynamic Scoring:** Earn bonus points for guessing early, and get rewarded for drawing identifiable masterpieces.
+- **Gradual Clues:** Stuck? The game automatically exposes letters as time runs out.
+- **Engaging Extras:** Throw emojis, skip bad prompts, and trash-talk in real-time chat.
+- **Locked-Down Dictionary:** Zero words are sent to the browser until they are needed. Anti-cheat by design.
+
+---
+
+## the tech stack
+
+| component | technology |
 |---|---|
-| framework | Next.js 15 (App Router) |
-| realtime | Firebase Realtime Database |
-| word bank | Firebase Firestore (server-side only) |
-| server | Firebase Admin SDK |
+| frontend | Next.js 15 (App Router) |
+| live state | Firebase Realtime Database |
+| data vault | Firebase Firestore (Admin access only) |
+| backend | Firebase Admin SDK |
 | styling | Tailwind CSS v4 |
 | language | TypeScript 5 |
 
 ---
 
-## getting started
+## local setup guide
 
-### 1. clone
-
+### 1. get the code
 ```bash
 git clone https://github.com/anselm1234-eng/doodledash.git
 cd doodledash
 npm install
-```
+2. firebase configuration
+Go to the Firebase Console and create a new project.
 
-### 2. firebase setup
+Activate Realtime Database.
 
-1. Create a project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Realtime Database**
-3. Enable **Firestore** in Native mode (for the word bank)
-4. Go to **Project Settings → Service Accounts → Generate new private key**
+Activate Firestore (Native mode).
 
-### 3. environment variables
+Navigate to Project Settings → Service Accounts and click Generate new private key (save this file).
 
-```bash
+3. secrets & environment
+bash
 cp .env.example .env.local
-```
+Open .env.local and drop in your Firebase web config and Admin SDK keys. Don't forget to include the NEXT_PUBLIC_FIREBASE_DATABASE_URL straight from your Firebase dashboard.
 
-Fill in `.env.local` with your Firebase client config and Admin SDK credentials. Make sure `NEXT_PUBLIC_FIREBASE_DATABASE_URL` is set — it's the RTDB URL from your Firebase console.
+4. secure your rules
+Push the security rules to Firebase to ensure no one can read the words directly from the client:
 
-### 4. deploy rules
-
-```bash
+bash
 npx firebase login
 npx firebase use your-project-id
-
-# deploy both RTDB and Firestore rules
 npx firebase deploy --only database,firestore:rules
-```
+5. populate the dictionary
+The client bundle holds zero words. To inject your custom list into Firestore:
 
-### 5. seed the word bank
-
-Words live in Firestore (server-side only), not in the client bundle. Copy the example and fill in your words:
-
-```bash
+bash
 cp scripts/seed-words.example.ts scripts/seed-words.ts
-# edit scripts/seed-words.ts with your word bank
+# Open scripts/seed-words.ts and add your categories and words
 npm run seed
-```
+(Note: scripts/seed-words.ts is ignored by Git so your custom lists remain private. The repo only tracks the example file.)
 
-> `scripts/seed-words.ts` is gitignored — your actual words stay private. Only the example is committed.
-
-### 6. run
-
-```bash
+6. launch
+bash
 npm run dev
-```
+Open http://localhost:3000 and start a game.
 
-→ [http://localhost:3000](http://localhost:3000)
-
----
-
-## project structure
-
-```
+directory layout
+text
 app/
-├── api/game/route.ts       server-side logic (word validation, scoring, hints)
-├── room/[roomId]/page.tsx  game room
-└── page.tsx                landing page
+├── api/game/route.ts       backend engine (scoring, hints, validation)
+├── room/[roomId]/page.tsx  active game view
+└── page.tsx                main landing & join screen
 
 components/
-├── Canvas.tsx              drawing canvas (RTDB synced)
-├── Chat.tsx                chat + guess input (RTDB synced)
-├── HostControls.tsx        lobby settings
-├── FloatingEmojis.tsx      emoji reactions
-└── RoomDoodles.tsx         decorative background
+├── Canvas.tsx              real-time drawing surface
+├── Chat.tsx                message feed & guessing box
+├── HostControls.tsx        game rule configuration
+├── FloatingEmojis.tsx      reactive emoji overlays
+└── RoomDoodles.tsx         background art
 
 lib/
-├── firebase.ts             RTDB client instance
-├── firebaseAdmin.ts        admin SDK init (RTDB + Firestore)
-├── gameLogic.ts            room creation, turns, chat
-├── words.ts                getWordMask utility only
-├── sounds.ts               web audio sound effects
-├── store.ts                session storage helpers
-└── types.ts                shared typescript types
+├── firebase.ts             browser Firebase connection
+├── firebaseAdmin.ts        secure server-side connection
+├── gameLogic.ts            turn management & room flow
+├── words.ts                word masking logic
+├── sounds.ts               audio effects
+├── store.ts                local player state
+└── types.ts                TypeScript interfaces
 
 scripts/
-├── seed-words.example.ts   template — copy and fill in your words
-└── seed-words.ts           your actual word bank (gitignored)
-```
+├── seed-words.example.ts   template for word injection
+└── seed-words.ts           actual private dictionary (ignored by Git)
+where the data lives
+data type	destination	reason
+lobbies, chat, drawings	Realtime Database	Instant, low-latency sync across all clients
+word dictionary	Firestore	Hidden from the client, protected by strict rules
+active secret word	Server memory / Firestore	Kept entirely away from the guessing players
+anti-cheat architecture
+All words are injected into Firestore via the Admin SDK under the wordBank/{category} path. Firestore rules are configured to reject any read request from the client. The browser only receives a masked version of the word (e.g., _ _ _ _).
 
----
+If you need to update the word pool, simply modify scripts/seed-words.ts and execute npm run seed again.
 
-## data architecture
+contribute
+Found a bug or have a feature idea? Let me know!
 
-| data | where | why |
-|---|---|---|
-| rooms, players, chat, canvas | Firebase Realtime Database | low-latency, push-based sync |
-| word bank | Firestore (admin-only) | server-side only, clients blocked by rules |
-| secret word (active round) | server memory + Firestore secrets | never exposed to clients |
+Report a bug
 
----
+Give feedback
 
-## word bank security
+support
+If DoodleDash is a hit with your friend group, consider supporting the project!
 
-Words are seeded into Firestore under `wordBank/{category}` via the Admin SDK. Firestore rules block all client reads on that collection. The client bundle contains zero words — only a `getWordMask` utility that turns a word into underscores.
+https://img.shields.io/badge/sponsor-%E2%9D%A4-white?style=flat-square&labelColor=09090b
 
-To update words, edit `scripts/seed-words.ts` and re-run `npm run seed`.
-
----
-
-## contributing
-
-bugs and feedback welcome via [github issues](https://github.com/anselm1234-eng/doodledash/issues).
-
-- [report a bug](https://github.com/anselm1234-eng/doodledash/issues)
-- [give feedback](https://github.com/anselm1234-eng/doodledash/issues)
-
----
-
-## sponsor
-
-if doodledash brings you joy, consider supporting development.
-
-[![Sponsor](https://img.shields.io/badge/sponsor-%E2%9D%A4-white?style=flat-square&labelColor=09090b)](https://github.com/sponsors/anselm1234-eng)
-
----
-
-## license
-
-[AGPL v3](./LICENSE) — if you modify and deploy this, you must open source your changes under the same license.
+license
+MIT — free and open source. Do whatever you want with it!
 
 <div align="center">
+crafted with ♥ by Anselm Wrenna
 
-made with ♥ by [anselm1234-eng](https://github.com/anselm1234-eng)
-
-</div>
+</div> ```
